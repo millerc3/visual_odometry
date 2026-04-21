@@ -13,6 +13,6 @@ class DriveStep:
     timestamp:datetime
     frame_ms:int = 42   # default to 24 fps
     left_tracked_results:Optional[Results] = None
-    disp_map:Optional[DisparityMap] = None
-    disp_frame:Optional[Image] = None
-    oxts:Optional[list[Oxts]] = None
+    disparity_map:Optional[DisparityMap] = None
+    diaprity_vis:Optional[Image] = None
+    oxts:Optional[Oxts] = None

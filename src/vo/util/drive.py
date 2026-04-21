@@ -5,7 +5,7 @@ from typing import Tuple
 import numpy as np
 
 from vo.util.drive_step import DriveStep
-from vo.util.processing import compute_yolo_tracking, computeDepthMap, apply_yolo_boxes, apply_dist_text
+from vo.cv.processing import compute_yolo_tracking, compute_disparity_map, apply_yolo_boxes, apply_dist_text, convert_disparity_u8
 from vo.kitti import parser as kitti_parser
 
 class Drive:
@@ -17,13 +17,12 @@ class Drive:
             self.steps = steps
 
     def compute_disparty(self) -> None:
-        depth_maps = [computeDepthMap(s) for s in self.steps]
-        for i, dm in enumerate(depth_maps):
-            disp = dm.copy()
-            disp = cv.normalize(disp, None, 0, 255, cv.NORM_MINMAX)
-            disp = disp.astype(np.uint8)
-            self.steps[i].disp_frame = disp
-            self.steps[i].disp_map = depth_maps[i]
+        disparity_maps = [compute_disparity_map(s) for s in self.steps]
+        disparity_vises = [convert_disparity_u8(m) for m in disparity_maps]
+
+        for i in range(len(disparity_maps)):
+            self.steps[i].disparity_map = disparity_maps[i]
+            self.steps[i].disparity_vis = disparity_vises[i]
 
     def track_left(self) -> None:
         print("Computing YOLO Tracking")
@@ -42,7 +41,7 @@ class Drive:
 
                 if overlay_tracking:
                     f = apply_yolo_boxes(f, s.left_tracked_results.boxes)
-                    f = apply_dist_text(f, s.disp_map, s.left_tracked_results.boxes, self.cam_focal_length, self.cam_baseline)
+                    f = apply_dist_text(f, s.disparity_map, s.left_tracked_results.boxes, self.cam_focal_length, self.cam_baseline)
 
                 cv.imshow("Drive", f)
 
@@ -53,14 +52,14 @@ class Drive:
                     break
 
     def watch_left(self, overlay_tracking=False):
-        if overlay_tracking and self.steps[0].disp_map is None:
+        if overlay_tracking and self.steps[0].disparity_map is None:
             self.compute_disparty()
         if overlay_tracking and self.steps[0].left_tracked_results is None:
             self.track_left()
         self.watch_video(lambda s: s.left_frame, overlay_tracking)
     
     def watch_disparity(self, overlay_tracking=False):
-        if self.steps[0].disp_frame is None:
+        if self.steps[0].diaprity_vis is None:
             self.compute_disparty()
         if overlay_tracking and self.steps[0].left_tracked_results is None:
             self.track_left()

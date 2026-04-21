@@ -41,7 +41,7 @@ def apply_dist_text(frame:Image, disp_map:DisparityMap, boxes:Boxes, focal_lengh
         cv.putText(ret, f"{dist:.2f}m", (tx, ty), cv.FONT_HERSHEY_SIMPLEX, .6, (255, 255, 255), 2)
     return ret
 
-def computeDepthMap(step:DriveStep) -> DisparityMap:
+def compute_disparity_map(step:DriveStep) -> DisparityMap:
     window_size = 5
     min_disp = 0
     nDisFactor = 8
@@ -65,3 +65,9 @@ def computeDepthMap(step:DriveStep) -> DisparityMap:
     right = cv.GaussianBlur(right, (5,5), 0)
     disparity = stereo.compute(left, right).astype(np.float32) / 16.0
     return disparity
+
+def convert_disparity_u8(map:DisparityMap) -> Image:
+    disp = map.copy()
+    disp = cv.normalize(disp, None, 0, 255, cv.NORM_MINMAX)
+    disp = disp.astype(np.uint8)
+    return disp

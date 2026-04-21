@@ -5,8 +5,8 @@ from typing import Tuple
 import pandas as pd
 import numpy as np
 
-from drive_step import DriveStep
-from processing import compute_yolo_tracking, computeDepthMap, apply_yolo_boxes, apply_dist_text
+from vo.util.drive_step import DriveStep
+from vo.util.processing import compute_yolo_tracking, computeDepthMap, apply_yolo_boxes, apply_dist_text
 
 
 

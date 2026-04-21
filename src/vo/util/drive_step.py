@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from ultralytics.engine.results import Results
 
-from typings import Image, DisparityMap
+from vo.util.typings import Image, DisparityMap
 
 @dataclass
 class DriveStep:

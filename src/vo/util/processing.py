@@ -3,11 +3,11 @@ import numpy as np
 from ultralytics import YOLO
 from ultralytics.engine.results import Results, Boxes
 
-from drive_step import DriveStep
-from typings import DisparityMap, Image
+from vo.util.drive_step import DriveStep
+from vo.util.typings import DisparityMap, Image
 
 def compute_yolo_tracking(frames:list[Image]) -> list[Results]:
-    model = YOLO("yolov8n.pt")
+    model = YOLO("models/yolov8n.pt")
     results = model(frames)
     return results
 

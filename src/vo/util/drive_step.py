@@ -4,6 +4,7 @@ from typing import Optional
 from ultralytics.engine.results import Results
 
 from vo.util.typings import Image, DisparityMap
+from vo.kitti.oxts import Oxts
 
 @dataclass
 class DriveStep:
@@ -14,3 +15,4 @@ class DriveStep:
     left_tracked_results:Optional[Results] = None
     disp_map:Optional[DisparityMap] = None
     disp_frame:Optional[Image] = None
+    oxts:Optional[list[Oxts]] = None

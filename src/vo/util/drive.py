@@ -2,13 +2,11 @@ from pathlib import Path
 import cv2 as cv
 from datetime import datetime
 from typing import Tuple
-import pandas as pd
 import numpy as np
 
 from vo.util.drive_step import DriveStep
 from vo.util.processing import compute_yolo_tracking, computeDepthMap, apply_yolo_boxes, apply_dist_text
-
-
+from vo.kitti import parser as kitti_parser
 
 class Drive:
     def __init__(self, cam_baseline:float, focal_length:Tuple[float], steps:list[DriveStep]|None=None):
@@ -48,7 +46,7 @@ class Drive:
 
                 cv.imshow("Drive", f)
 
-                k = cv.waitKey(s.frame_ms*2)
+                k = cv.waitKey(s.frame_ms)
                 if k == ord("q"):
                     cv.destroyAllWindows()
                     show_video = False
@@ -74,55 +72,24 @@ class Drive:
         assert data_dir
         assert data_dir.is_dir()
 
-        left_images_dir = data_dir / "image_02/data"
-        right_images_dir = data_dir / "image_03/data"
-        timestamp_file = data_dir / "image_02" / "timestamps.txt"
-        cam_calib_file = data_dir / "calib_cam_to_cam.txt"
-
-        assert left_images_dir.is_dir()
-        assert right_images_dir.is_dir()
-        assert timestamp_file.is_file()
-        assert cam_calib_file.is_file()
-
-        timestamps:list[datetime]
-        with open(timestamp_file) as f:
-            timestamps = [pd.to_datetime(line.strip()) for line in f]
-
-        left_image_paths:list[Path] = [f for f in left_images_dir.iterdir()]
-        left_image_paths.sort()
-        right_image_paths:list[Path] = [f for f in right_images_dir.iterdir()]
-        right_image_paths.sort()
-        
-        assert len(timestamps) == len(left_image_paths) == len(right_image_paths), "frame counts not matching"
+        timestamps:list[datetime] = kitti_parser.get_timestamps(data_dir)
+        left_images, right_images = kitti_parser.get_stereo_images(data_dir)
+        frame_times = kitti_parser.get_time_per_frame(timestamps)
+        oxts_data = kitti_parser.get_oxts_data(data_dir)
 
         steps:list[DriveStep] = list()
         for i in range(len(timestamps)):
-            step = DriveStep(cv.imread(left_image_paths[i]),
-                             cv.imread(right_image_paths[i]),
-                             timestamps[i])
+            step = DriveStep(left_images[i],
+                             right_images[i],
+                             timestamps[i],
+                             frame_ms=frame_times[i],
+                             oxts=oxts_data[i])
             steps.append(step)
-        
-        for i in range(len(steps)):
-            if i == (len(steps) - 1):
-                delay = steps[i-1].frame_ms
-            else:
-                delta = steps[i+1].timestamp - steps[i].timestamp
-                delay = delta.microseconds / 1000
-            steps[i].frame_ms = int(delay)
 
-        with open(cam_calib_file) as f:
-            fx = fy = tx = 0.0
-            for line in f:
-                items = line.split()
-                if "P_rect_03" in items[0]:
-                    fx = float(items[1])
-                    fy = float(items[6])
-                    tx = float(items[4])
-               
-            baseline = -tx / fx
-        print("Camera baseline: %f" % baseline)
-        print("Camera fx: %f" % fx)
-        print("Camera tx: %f" % tx)
-        return cls(baseline, (fx, fy), steps)
+        cam_calib_file = data_dir / "calib_cam_to_cam.txt"
+        assert cam_calib_file.is_file()
+        cam_data = kitti_parser.parse_cam_cam_calib(cam_calib_file)
+
+        return cls(cam_data.baseline, (cam_data.fx, cam_data.fy), steps)
 
 
